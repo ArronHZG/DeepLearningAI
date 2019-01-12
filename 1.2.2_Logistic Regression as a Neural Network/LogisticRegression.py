@@ -1,17 +1,14 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import h5py
-import scipy
 from PIL import Image
-from scipy import ndimage
 import time
 
-
-# import cmath
 
 
 def load_dataset():
     train_dataset = h5py.File('datasets/train_catvnoncat.h5', "r")
+
     train_set_x_orig = np.array(train_dataset["train_set_x"][:])  # your train set features
     train_set_y_orig = np.array(train_dataset["train_set_y"][:])  # your train set labels
 
@@ -71,8 +68,6 @@ def reshape4DAndstandardize(X):
     # 将数据转为列向量
 
 
-# GRADED FUNCTION: sigmoid
-
 def sigmoid(z):
     """
     Compute the sigmoid of z
@@ -86,7 +81,7 @@ def sigmoid(z):
 
     ### START CODE HERE ### (≈ 1 line of code)
     # s = 1/(1+cmath.e**(-z))
-    s = 1 / (1 + np.power(np.e, -z))
+    s = 1 / (1 + np.exp(-z))
     ### END CODE HERE ###
 
     return s
@@ -161,7 +156,6 @@ def propagate(w, b, X, Y):
 
 
 # GRADED FUNCTION: optimize
-
 def optimize(w, b, X, Y, num_iterations, learning_rate, print_cost=False):
     """
     This function optimizes w and b by running a gradient descent algorithm
@@ -272,9 +266,8 @@ def model(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rate=0
     """
 
     ### START CODE HERE ###
-    dim=X_train.shape[0]
     # initialize parameters with zeros (≈ 1 line of code)
-    w, b = initialize_with_zeros(dim)
+    w, b = initialize_with_zeros(X_train.shape[0])
 
     # Gradient descent (≈ 1 line of code)
     parameters, grads, costs = optimize(w, b, X_train, Y_train, num_iterations, learning_rate, print_cost=print_cost)
@@ -309,6 +302,11 @@ def model(X_train, Y_train, X_test, Y_test, num_iterations=2000, learning_rate=0
 
     return d
 
+
+def WhatPicIS(index):
+    print(f"index = {index} y = {str(train_set_y[:, index])} " +
+          "it's a '" + classes[np.squeeze(train_set_y[:, index])].decode("utf-8") + "' picture.")  # np.squeeze去维
+
 if __name__ == '__main__':
     # Common steps for pre-processing a new dataset are:
     # - Figure out the dimensions and shapes of the problem (m_train, m_test, num_px, ...)
@@ -319,12 +317,17 @@ if __name__ == '__main__':
     train_set_x_orig, train_set_y, test_set_x_orig, test_set_y, classes = load_dataset()
     print(f"train_set_x_orig={train_set_x_orig.shape}")
     print(f"train_set_y={train_set_y.shape}")
-    print(f"test_set_x_orig={test_set_x_orig.shape}\ntest_set_y={test_set_y.shape}\nclasses{classes.shape }")
+    print(f"test_set_x_orig={test_set_x_orig.shape}")
+    print(f"test_set_y={test_set_y.shape}")
+    print(f"classes{classes.shape}")
+
+    # 本地化所有图片
     # savePicMult(train_set_x_orig,processesNum=10)
-    index = 8
-    # plt.imshow(train_set_x_orig[index])
-    print(f"index = {index} y = {str(train_set_y[:,index])} " +
-          "it's a '" + classes[np.squeeze(train_set_y[:, index])].decode("utf-8") + "' picture.")  # np.squeeze去维
+
+    # 查看某一张照片是否为猫
+    WhatPicIS(8)
+
+
     ### START CODE HERE ### (≈ 3 lines of code)
     m_train = train_set_x_orig.shape[0]
     m_test = test_set_x_orig.shape[0]
@@ -351,6 +354,9 @@ if __name__ == '__main__':
     print("test_set_x_flatten shape: " + str(test_set_x_flatten.shape))
     print("test_set_y shape: " + str(test_set_y.shape))
     print("sanity check after reshaping: " + str(train_set_x_flatten[0:5, 0]))
+
+    d = model(train_set_x_flatten, train_set_y, test_set_x_flatten, test_set_y, num_iterations=2000, learning_rate=0.005,
+              print_cost=True)
 
     # 全部转为列向量并标准化
 
@@ -418,45 +424,45 @@ if __name__ == '__main__':
 
     #观察过拟合
 
-    import multiprocessing
-    time_start = time.time()
-    result=[]
-    processesNum=4
-    pool = multiprocessing.Pool(processes=processesNum)
-    for i in range(0,2010,50):
-        result.append(pool.apply_async(func=model, args=(train_set_x_flatten, train_set_y, test_set_x_flatten, test_set_y, i, 0.005)))
-    pool.close()
-    pool.join()  # 调用join之前，先调用close函数，否则会出错。执行完close后不会有新的进程加入到pool,join函数等待所有子进程结束
-    time_end = time.time()
-    print(f"time={(time_end-time_start)}s")
-    result = [item.get() for item in result]
-    result_sorted = sorted(result, key=lambda e:(e.__getitem__('num_iterations')))
-
-    # "train_accuracy": train_accuracy,
-    # "": test_ccuracy}
-    train_accuracy_list=[]
-    test_ccuracy_list=[]
-    num_list=[]
-    for item in result_sorted:
-        train_accuracy_list.append(item["train_accuracy"])
-        test_ccuracy_list.append(item["test_ccuracy"])
-        num_list.append(item["num_iterations"])
-
-
-    # 这里导入你自己的数据
-    # ......
-    # ......
-    # x_axix，train_pn_dis这些都是长度相同的list()
-
-    # 开始画图
-    plt.title('Result Analysis')
-    plt.plot(num_list, train_accuracy_list, color='blue', label='training accuracy')
-    plt.plot(num_list, test_ccuracy_list, color='red', label='testing accuracy')
-    plt.legend()  # 显示图例
-
-    plt.xlabel('iteration times')
-    plt.ylabel('rate%')
-    plt.show()
-    # python 一个折线图绘制多个曲线
+    # import multiprocessing
+    # time_start = time.time()
+    # result=[]
+    # processesNum=4
+    # pool = multiprocessing.Pool(processes=processesNum)
+    # for i in range(0,2010,50):
+    #     result.append(pool.apply_async(func=model, args=(train_set_x_flatten, train_set_y, test_set_x_flatten, test_set_y, i, 0.005)))
+    # pool.close()
+    # pool.join()  # 调用join之前，先调用close函数，否则会出错。执行完close后不会有新的进程加入到pool,join函数等待所有子进程结束
+    # time_end = time.time()
+    # print(f"time={(time_end-time_start)}s")
+    # result = [item.get() for item in result]
+    # result_sorted = sorted(result, key=lambda e:(e.__getitem__('num_iterations')))
+    #
+    # # "train_accuracy": train_accuracy,
+    # # "": test_ccuracy}
+    # train_accuracy_list=[]
+    # test_ccuracy_list=[]
+    # num_list=[]
+    # for item in result_sorted:
+    #     train_accuracy_list.append(item["train_accuracy"])
+    #     test_ccuracy_list.append(item["test_ccuracy"])
+    #     num_list.append(item["num_iterations"])
+    #
+    #
+    # # 这里导入你自己的数据
+    # # ......
+    # # ......
+    # # x_axix，train_pn_dis这些都是长度相同的list()
+    #
+    # # 开始画图
+    # plt.title('Result Analysis')
+    # plt.plot(num_list, train_accuracy_list, color='blue', label='training accuracy')
+    # plt.plot(num_list, test_ccuracy_list, color='red', label='testing accuracy')
+    # plt.legend()  # 显示图例
+    #
+    # plt.xlabel('iteration times')
+    # plt.ylabel('rate%')
+    # plt.show()
+    # # python 一个折线图绘制多个曲线
 
 
